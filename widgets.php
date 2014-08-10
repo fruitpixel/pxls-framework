@@ -1,0 +1,1 @@
+<?phprequire_once( trailingslashit( PXLS_FRAMEWORK_DIR ) . 'widgets/feed-widget.php' );require_once( trailingslashit( PXLS_FRAMEWORK_DIR ) . 'widgets/testimonial-widget.php' );require_once( trailingslashit( PXLS_FRAMEWORK_DIR ) . 'widgets/page-and-post-excerpt-widgets.php' );
