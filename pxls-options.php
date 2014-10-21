@@ -1,297 +1,687 @@
 <?php
+    /**
+     * ReduxFramework Sample Config File
+     * For full documentation, please visit: https://docs.reduxframework.com
+     * */
 
-/**
- * 
- * Require the framework class before doing anything else, so we can use the defined urls and dirs
- * Also if running on windows you may have url problems, which can be fixed by defining the framework url first
- *
- */
-if ( ! class_exists( 'PXLS_Options' ) ) {
-	require_once( dirname( __FILE__ ) . '/options/options.php' );
-}
+    if ( ! class_exists( 'PXLS_Redux_Options' ) ) {
 
+        class PXLS_Redux_Options {
 
+            public $args = array();
+            public $sections = array();
+            public $theme;
+            public $ReduxFramework;
 
-/**
- * 
- * Custom function for filtering the sections array given by theme, good for child themes to override or add to the sections.
- * Simply include this function in the child themes functions.php file.
- *
- * NOTE: the defined constansts for urls, and dir will NOT be available at this point in a child theme, so you must use
- * get_template_directory_uri() if you want to use any of the built in icons
- *
- * @since  1.0.0
- *
- */
-function add_another_section( $sections ){
-	
-	//$sections = array();
-	$sections[] = array(
-				'title' => __('A Section added by hook', 'pxls-opts'),
-				'desc' => __('<p class="description">This is a section created by adding a filter to the sections array, great to allow child themes, to add/remove sections from the options.</p>', 'pxls-opts'),
-				//all the glyphicons are included in the options folder, so you can hook into them, or link to your own custom ones.
-				//You dont have to though, leave it blank for default.
-				'icon' => trailingslashit(get_template_directory_uri()).'options/img/glyphicons/glyphicons_062_attach.png',
-				//Lets leave this as a blank section, no options just some intro text set above.
-				'fields' => array()
-				);
-	
-	return $sections;
-	
-}//function
-//add_filter('pxls-opts-sections', 'add_another_section');
+            public function __construct() {
 
+                if ( ! class_exists( 'ReduxFramework' ) ) {
+                    return;
+                }
 
+                // This is needed. Bah WordPress bugs.  ;)
+                /*
+                if ( true == Redux_Helpers::isTheme( __FILE__ ) ) {                	
+                    $this->initSettings();
+                } else {
+                    add_action( 'plugins_loaded', array( $this, 'initSettings' ), 10 );
+                }
+                */
 
+                $this->initSettings();
 
-/**
- * 
- * Custom function for filtering the args array given by theme, good for child themes to override or add to the args array.
- *
- * @since  1.0.0
- *
- */
-function change_framework_args( $args ){
-	
-	//$args['dev_mode'] = false;
-	
-	return $args;
-	
-}//function
-//add_filter('pxls-opts-args-twenty_eleven', 'change_framework_args');
+            }
 
+            public function initSettings() {
 
+                // Just for demo purposes. Not needed per say.
+                $this->theme = wp_get_theme();
 
+                // Set the default arguments
+                $this->setArguments();
 
+                // Set a few help tabs so you can see how it's done
+                $this->setHelpTabs();
 
+                // Create the sections and fields
+                $this->setSections();
 
+                if ( ! isset( $this->args['opt_name'] ) ) { // No errors please
+                    return;
+                }
 
+                // If Redux is running as a plugin, this will remove the demo notice and links
+                add_action( 'redux/loaded', array( $this, 'remove_demo' ) );
 
+                // Function to test the compiler hook and demo CSS output.
+                // Above 10 is a priority, but 2 in necessary to include the dynamically generated CSS to be sent to the function.
+                //add_filter('redux/options/'.$this->args['opt_name'].'/compiler', array( $this, 'compiler_action' ), 10, 3);
 
-/**
- * setup_framework_options()
- * 
- * This is the meat of creating the optons page
- *
- * Override some of the default values, uncomment the args and change the values
- * - no $args are required, but there there to be over ridden if needed.
- *
- * @since  1.0.0
- */
-function setup_framework_options() {
-	$args = array();
+                // Change the arguments after they've been declared, but before the panel is created
+                //add_filter('redux/options/'.$this->args['opt_name'].'/args', array( $this, 'change_arguments' ) );
 
-	//Set it to dev mode to view the class settings/info in the form - default is false
-	$args['dev_mode'] = false;
+                // Change the default value of a field after it's been set, but before it's been useds
+                //add_filter('redux/options/'.$this->args['opt_name'].'/defaults', array( $this,'change_defaults' ) );
 
-	//Remove the default stylesheet? make sure you enqueue another one all the page will look whack!
-	//$args['stylesheet_override'] = true;
+                // Dynamically add a section. Can be also used to modify sections/fields
+                //add_filter('redux/options/' . $this->args['opt_name'] . '/sections', array($this, 'dynamic_section'));
 
-	//Add HTML before the form
-	$args['intro_text'] = __('', 'pxls-opts');
+                $this->ReduxFramework = new ReduxFramework( $this->sections, $this->args );
+            }
 
-	//Setup custom links in the footer for share icons
-	$args['share_icons']['twitter'] = array();
+            /**
+             * This is a test function that will let you see when the compiler hook occurs.
+             * It only runs if a field    set with compiler=>true is changed.
+             * */
+            function compiler_action( $options, $css, $changed_values ) {
+                echo '<h1>The compiler hook has run!</h1>';
+                echo "<pre>";
+                print_r( $changed_values ); // Values that have changed since the last save
+                echo "</pre>";
+                //print_r($options); //Option values
+                //print_r($css); // Compiler selector CSS values  compiler => array( CSS SELECTORS )
 
-	/*array(
-											'link' => 'http://twitter.com/fruitpixel',
-											'title' => 'Follow me on Twitter', 
-											'img' => PXLS_OPTIONS_URL.'img/glyphicons/glyphicons_322_twitter.png'
-											); */
+                /*
+              // Demo of how to use the dynamic CSS and write your own static CSS file
+              $filename = dirname(__FILE__) . '/style' . '.css';
+              global $wp_filesystem;
+              if( empty( $wp_filesystem ) ) {
+                require_once( ABSPATH .'/wp-admin/includes/file.php' );
+              WP_Filesystem();
+              }
 
-	$args['share_icons']['linked_in'] = array();
-
-	/* array(
-											'link' => 'http://www.linkedin.com/pub/richard-howarth/18/35/295',
-											'title' => 'Find me on LinkedIn', 
-											'img' => PXLS_OPTIONS_URL.'img/glyphicons/glyphicons_337_linked_in.png'
-											); */
-
-	//Choose to disable the import/export feature
-	//$args['show_import_export'] = false;
-
-	//Choose a custom option name for your theme options, the default is the theme name in lowercase with spaces replaced by underscores
-	$args['opt_name'] = 'pxls';
-
-	//Custom menu icon
-	$args['menu_icon'] =  PXLS_OPTIONS_URL.'img/menu_icon.png';
-
-	//Custom menu title for options page - default is "Options"
-	$args['menu_title'] = __( get_option( 'pxls_themename' ) , 'pxls-opts');
-
-	//Custom Page Title for options page - default is "Options"
-	$args['page_title'] = __( get_option( 'pxls_themename' ) , 'pxls-opts');
-
-	//Custom page slug for options page (wp-admin/themes.php?page=***) - default is "pxls_theme_options"
-	$args['page_slug'] = 'pxls_theme_options';
-
-	//Custom page capability - default is set to "manage_options"
-	$args['page_cap'] = 'publish_pages';
-
-	//page type - "menu" (adds a top menu section) or "submenu" (adds a submenu) - default is set to "menu"
-	$args['page_type'] = 'menu';
-
-	//parent menu - default is set to "themes.php" (Appearance)
-	//the list of available parent menus is available here: http://codex.wordpress.org/Function_Reference/add_submenu_page#Parameters
-	$args['page_parent'] = 'admin.php';
-
-	//custom page location - default 100 - must be unique or will override other items
-	$args['page_position'] = 564;
-
-	//Custom page icon class (used to override the page icon next to heading)
-	//$args['page_icon'] = 'icon-themes';
-
-	//Want to disable the sections showing as a submenu in the admin? uncomment this line
-	//$args['allow_sub_menu'] = false;
-		
-	//Set ANY custom page help tabs - displayed using the new help tab API, show in order of definition		
-	$args['help_tabs'][] = array(
-								'id' => 'pxls-opts-1',
-								'title' => __('Theme Information 1', 'pxls-opts'),
-								'content' => __('<p>This is the tab content, HTML is allowed.</p>', 'pxls-opts')
-								);
-	$args['help_tabs'][] = array(
-								'id' => 'pxls-opts-2',
-								'title' => __('Theme Information 2', 'pxls-opts'),
-								'content' => __('<p>This is the tab content, HTML is allowed.</p>', 'pxls-opts')
-								);
-
-	//Set the Help Sidebar for the options page - no sidebar by default										
-	$args['help_sidebar'] = __( '<p>Welcome to the <img src="' . trailingslashit( PXLS_URI ) .'images/pxls-slug.png" alt="PXLS:Themes" /> Framework.</p>', 'pxls-opts' );
+              if( $wp_filesystem ) {
+                $wp_filesystem->put_contents(
+                    $filename,
+                    $css,
+                    FS_CHMOD_FILE // predefined mode settings for WP files
+                );
+              }
+             */
+            }
 
 
 
-	$sections = array();
+            /**
+             * Filter hook for filtering the args. Good for child themes to override or add to the args array. Can also be used in other functions.
+             * */
+            function change_arguments( $args ) {
+                //$args['dev_mode'] = true;
 
-			
-	$tabs = array();
-			
-	if ( function_exists( 'wp_get_theme' ) ) {
-		$theme_data = wp_get_theme();
-		$theme_uri = $theme_data->get( 'ThemeURI' );
-		$description = $theme_data->get( 'Description' );
-		$author = $theme_data->get( 'Author' );
-		$version = $theme_data->get( 'Version' );
-		$tags = $theme_data->get( 'Tags' );
-	}else{
-		$theme_data = wp_get_theme( trailingslashit( get_stylesheet_directory() ) . 'style.css' );
-		$theme_uri = $theme_data['URI'];
-		$description = $theme_data['Description'];
-		$author = $theme_data['Author'];
-		$version = $theme_data['Version'];
-		$tags = $theme_data['Tags'];
-	}	
+                return $args;
+            }
 
-	$theme_info = '<div class="pxls-opts-section-desc">';
-	$theme_info .= '<p class="pxls-opts-theme-data description theme-uri">' . __( '<strong>Theme URL:</strong> ', 'pxls-opts' ).'<a href="' . $theme_uri . '" target="_blank">' . $theme_uri . '</a></p>';
-	$theme_info .= '<p class="pxls-opts-theme-data description theme-author">' . __( '<strong>Author:</strong> ', 'pxls-opts' ) . $author . '</p>';
-	$theme_info .= '<p class="pxls-opts-theme-data description theme-version">' . __( '<strong>Version:</strong> ', 'pxls-opts' ) . $version . '</p>';
-	$theme_info .= '<p class="pxls-opts-theme-data description theme-description">' . $description . '</p>';
-	$theme_info .= '<p class="pxls-opts-theme-data description theme-tags">' . __( '<strong>Tags:</strong> ', 'pxls-opts' ).implode( ', ', $tags ).'</p>';
-	$theme_info .= '</div>';
+            /**
+             * Filter hook for filtering the default value of any given field. Very useful in development mode.
+             * */
+            function change_defaults( $defaults ) {
+                $defaults['str_replace'] = 'Testing filter hook!';
 
-	$tabs['theme_info'] = array(
-					'icon' => PXLS_OPTIONS_URL.'img/glyphicons/glyphicons_195_circle_info.png',
-					'title' => __( 'Theme Information', 'pxls-opts' ),
-					'content' => $theme_info
-					);
-    
-    
-	if ( file_exists( trailingslashit( get_stylesheet_directory() ) . 'README.html' ) ) {
-		$tabs['theme_docs'] = array(
-						'icon' => PXLS_OPTIONS_URL.'img/glyphicons/glyphicons_071_book.png',
-						'title' => __('Documentation', 'pxls-opts'),
-						'content' => nl2br( file_get_contents( trailingslashit( get_stylesheet_directory() ) . 'README.html' ) )
-						);
-	}
+                return $defaults;
+            }
 
-	global $PXLS_Options;
-	$PXLS_Options = new PXLS_Options( $sections, $args, $tabs );
+            // Remove the demo link and the notice of integrated demo from the redux-framework plugin
+            function remove_demo() {
 
-}
-add_action( 'init', 'setup_framework_options', 0 );
+                // Used to hide the demo mode link from the plugin page. Only used when Redux is a plugin.
+                if ( class_exists( 'ReduxFrameworkPlugin' ) ) {
+                    remove_filter( 'plugin_row_meta', array(
+                        ReduxFrameworkPlugin::instance(),
+                        'plugin_metalinks'
+                    ), null, 2 );
 
+                    // Used to hide the activation notice informing users of the demo panel. Only used when Redux is a plugin.
+                    remove_action( 'admin_notices', array( ReduxFrameworkPlugin::instance(), 'admin_notices' ) );
+                }
+            }
 
+            public function setSections() {
 
+                /**
+                 * Used within different fields. Simply examples. Search for ACTUAL DECLARATION for field examples
+                 * */
+                // Background Patterns Reader
+                $sample_patterns_path = ReduxFramework::$_dir . '../sample/patterns/';
+                $sample_patterns_url  = ReduxFramework::$_url . '../sample/patterns/';
+                $sample_patterns      = array();
 
-function pxls_framework_settings( $sections ) {
-		
-	
-	$sections[] = array(
-		'icon' => PXLS_OPTIONS_URL.'img/glyphicons/glyphicons_040_stats.png',
-		'title' => __( 'Google Analytics', 'pxls-opts' ),
-		'desc' => __( '', 'pxls-opts' ),
-		'fields' => array(
-			array(
-				'id' => 'ga_enable',
-				'type' => 'select',
-				'title' => __( 'Enable Google Analytics?', 'pxls-opts' ), 
-				'desc' => __( '', 'pxls-opts' ),
-				'sub_desc' => __( 'Enable if you wish to use Google Analytics', 'pxls-opts' ),
-				'options' => array(
-					'0' => __( 'No', 'pxls-opts' ),
-					'1' => __( 'Yes', 'pxls-opts' )
-				),//Must provide key => value pairs for select options
-				'std' => '0'
-			),
-			array(
-				'id' => 'analytics_id', //must be unique
-				'type' => 'text', //the field type
-				'title' => __( 'Site ID', 'pxls-opts' ),
-				'sub_desc' => __( "Enter your site's ID", 'pxls-opts' ),
-				'desc' => __( '', 'pxls-opts' ),
-				'std' => 'UA-XXXXX-X'
-			)
-		)
-	);
+                if ( is_dir( $sample_patterns_path ) ) :
 
-	return $sections;
+                    if ( $sample_patterns_dir = opendir( $sample_patterns_path ) ) :
+                        $sample_patterns = array();
 
-}
-add_filter( 'pxls-opts-sections-pxls', 'pxls_framework_settings' );
+                        while ( ( $sample_patterns_file = readdir( $sample_patterns_dir ) ) !== false ) {
 
+                            if ( stristr( $sample_patterns_file, '.png' ) !== false || stristr( $sample_patterns_file, '.jpg' ) !== false ) {
+                                $name              = explode( '.', $sample_patterns_file );
+                                $name              = str_replace( '.' . end( $name ), '', $sample_patterns_file );
+                                $sample_patterns[] = array(
+                                    'alt' => $name,
+                                    'img' => $sample_patterns_url . $sample_patterns_file
+                                );
+                            }
+                        }
+                    endif;
+                endif;
 
+                ob_start();
 
+                $ct          = wp_get_theme();
+                $this->theme = $ct;
+                $item_name   = $this->theme->get( 'Name' );
+                $tags        = $this->theme->Tags;
+                $screenshot  = $this->theme->get_screenshot();
+                $class       = $screenshot ? 'has-screenshot' : '';
 
-/**
- * 
- * Custom function for the callback referenced above
- *
- */
-function my_custom_field( $field, $value ) {
-	print_r( $field );
-	print_r( $value );
+                $customize_title = sprintf( __( 'Customize &#8220;%s&#8221;', 'redux-framework-demo' ), $this->theme->display( 'Name' ) );
 
-}
+                ?>
+                <div id="current-theme" class="<?php echo esc_attr( $class ); ?>">
+                    <?php if ( $screenshot ) : ?>
+                        <?php if ( current_user_can( 'edit_theme_options' ) ) : ?>
+                            <a href="<?php echo wp_customize_url(); ?>" class="load-customize hide-if-no-customize"
+                               title="<?php echo esc_attr( $customize_title ); ?>">
+                                <img src="<?php echo esc_url( $screenshot ); ?>"
+                                     alt="<?php esc_attr_e( 'Current theme preview', 'redux-framework-demo' ); ?>"/>
+                            </a>
+                        <?php endif; ?>
+                        <img class="hide-if-customize" src="<?php echo esc_url( $screenshot ); ?>"
+                             alt="<?php esc_attr_e( 'Current theme preview', 'redux-framework-demo' ); ?>"/>
+                    <?php endif; ?>
 
+                    <h4><?php echo $this->theme->display( 'Name' ); ?></h4>
 
+                    <div>
+                        <ul class="theme-info">
+                            <li><?php printf( __( 'By %s', 'redux-framework-demo' ), $this->theme->display( 'Author' ) ); ?></li>
+                            <li><?php printf( __( 'Version %s', 'redux-framework-demo' ), $this->theme->display( 'Version' ) ); ?></li>
+                            <li><?php echo '<strong>' . __( 'Tags', 'redux-framework-demo' ) . ':</strong> '; ?><?php printf( $this->theme->display( 'Tags' ) ); ?></li>
+                        </ul>
+                        <p class="theme-description"><?php echo $this->theme->display( 'Description' ); ?></p>
+                        <?php
+                            if ( $this->theme->parent() ) {
+                                printf( ' <p class="howto">' . __( 'This <a href="%1$s">child theme</a> requires its parent theme, %2$s.', 'redux-framework-demo' ) . '</p>', __( 'http://codex.wordpress.org/Child_Themes', 'redux-framework-demo' ), $this->theme->parent()->display( 'Name' ) );
+                            }
+                        ?>
 
-/**
- * 
- * Custom function for the callback validation referenced above
- *
- */
-function validate_callback_function( $field, $value, $existing_value ) {
-	
-	$error = false;
-	$value =  'just testing';
-	/*
-	do your validation
-	
-	if(something){
-		$value = $value;
-	}elseif(somthing else){
-		$error = true;
-		$value = $existing_value;
-		$field['msg'] = 'your custom error message';
-	}
-	*/
-	
-	$return['value'] = $value;
-	if ( $error == true ) {
-		$return['error'] = $field;
-	}
-	return $return;
-	
-}
+                    </div>
+                </div>
 
+                <?php
+                $item_info = ob_get_contents();
+
+                ob_end_clean();
+
+                $sampleHTML = '';
+                if ( file_exists( dirname( __FILE__ ) . '/info-html.html' ) ) {
+                    Redux_Functions::initWpFilesystem();
+
+                    global $wp_filesystem;
+
+                    $sampleHTML = $wp_filesystem->get_contents( dirname( __FILE__ ) . '/info-html.html' );
+                }
+
+                // ACTUAL DECLARATION OF SECTIONS
+
+                $this->sections[] = array(
+                    'icon' => 'el-icon-home',
+                    'title' => __('Company Info', 'pxls-opts'),
+                    'desc' => __('', 'pxls-opts'),
+                    'fields' => array(            
+
+                        array(
+                            'id' => 'pxls_company_phone', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Company Phone Number', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_company_email', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Company Email Address', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_company_logo', //must be unique
+                            'type' => 'media', //the field type
+                            'title' => __('Company Logo', 'pxls-opts'),
+                            'subtitle' => __('', 'pxls-opts'),
+                            'desc' => __("Upload your image.<br/>(TIP - Don't remove the 'link' field!)", 'pxls-opts')
+                        )
+                    )
+                );
+
+                $this->sections[] = array(
+                    'title' => __( 'Social Accounts', 'pxls' ),
+                    'desc' => __( '', 'pxls' ),
+                    'icon'   => 'el-icon-link',
+                    'fields' => array(
+                        array(
+                            'id' => 'pxls_twitter_link', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Twitter', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_facebook_link', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Facebook', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_linkedin_link', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('LinkedIn', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_google_link', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Google+', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_youtube_link', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('YouTube', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_vimeo_link', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Vimeo', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_instagram_link', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Instagram', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_flickr_link', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Flickr', 'pxls-opts'),
+                            'subtitle' => __("", 'pxls-opts'),
+                            'desc' => __('', 'pxls-opts'),
+                        )
+                    )
+                );
+
+                $sections[] = array(
+                    'icon' => 'el-icon-eye-open',
+                    'title' => __('Login Screen', 'pxls-opts'),
+                    'desc' => __('', 'pxls-opts'),
+                    'fields' => array(
+                        array(
+                            'id' => 'pxls_login_logo', //must be unique
+                            'type' => 'media', //the field type
+                            'title' => __('Login Logo', 'pxls-opts'),
+                            'subtitle' => __('', 'pxls-opts'),
+                            'desc' => __("Upload an image to display on the login screen.<br/>(TIP - Don't remove the 'link' field!)", 'pxls-opts'),
+                        ),
+                        array(
+                            'id' => 'pxls_login_logo_url', //must be unique
+                            'type' => 'text', //the field type
+                            'title' => __('Login Logo Link', 'pxls-opts'),
+                            'subtitle' => __('', 'pxls-opts'),
+                            'desc' => __("Website address linked to when clicking on the logo on the login screen.", 'pxls-opts'),
+                            'validate' => 'url',
+                        )
+                    )
+                );
+
+                
+
+                $this->sections[] = array(
+                    'type' => 'divide',
+                );
+
+                
+
+                
+
+                
+
+                $theme_info = '<div class="redux-framework-section-desc">';
+                $theme_info .= '<p class="redux-framework-theme-data description theme-uri">' . __( '<strong>Theme URL:</strong> ', 'redux-framework-demo' ) . '<a href="' . $this->theme->get( 'ThemeURI' ) . '" target="_blank">' . $this->theme->get( 'ThemeURI' ) . '</a></p>';
+                $theme_info .= '<p class="redux-framework-theme-data description theme-author">' . __( '<strong>Author:</strong> ', 'redux-framework-demo' ) . $this->theme->get( 'Author' ) . '</p>';
+                $theme_info .= '<p class="redux-framework-theme-data description theme-version">' . __( '<strong>Version:</strong> ', 'redux-framework-demo' ) . $this->theme->get( 'Version' ) . '</p>';
+                $theme_info .= '<p class="redux-framework-theme-data description theme-description">' . $this->theme->get( 'Description' ) . '</p>';
+                $tabs = $this->theme->get( 'Tags' );
+                if ( ! empty( $tabs ) ) {
+                    $theme_info .= '<p class="redux-framework-theme-data description theme-tags">' . __( '<strong>Tags:</strong> ', 'redux-framework-demo' ) . implode( ', ', $tabs ) . '</p>';
+                }
+                $theme_info .= '</div>';
+
+                if ( file_exists( dirname( __FILE__ ) . '/../README.md' ) ) {
+                    $this->sections['theme_docs'] = array(
+                        'icon'   => 'el-icon-list-alt',
+                        'title'  => __( 'Documentation', 'redux-framework-demo' ),
+                        'fields' => array(
+                            array(
+                                'id'       => '17',
+                                'type'     => 'raw',
+                                'markdown' => true,
+                                'content'  => file_get_contents( dirname( __FILE__ ) . '/../README.md' )
+                            ),
+                        ),
+                    );
+                }
+
+                $this->sections[] = array(
+                    'title'  => __( 'Import / Export', 'redux-framework-demo' ),
+                    'desc'   => __( 'Import and Export your Redux Framework settings from file, text or URL.', 'redux-framework-demo' ),
+                    'icon'   => 'el-icon-refresh',
+                    'fields' => array(
+                        array(
+                            'id'         => 'opt-import-export',
+                            'type'       => 'import_export',
+                            'title'      => 'Import Export',
+                            'subtitle'   => 'Save and restore your Redux options',
+                            'full_width' => false,
+                        ),
+                    ),
+                );
+
+                $this->sections[] = array(
+                    'type' => 'divide',
+                );
+
+                $this->sections[] = array(
+                    'icon'   => 'el-icon-info-sign',
+                    'title'  => __( 'Theme Information', 'redux-framework-demo' ),
+                    'desc'   => __( '<p class="description">This is the Description. Again HTML is allowed</p>', 'redux-framework-demo' ),
+                    'fields' => array(
+                        array(
+                            'id'      => 'opt-raw-info',
+                            'type'    => 'raw',
+                            'content' => $item_info,
+                        )
+                    ),
+                );
+
+                if ( file_exists( trailingslashit( dirname( __FILE__ ) ) . 'README.html' ) ) {
+                    $tabs['docs'] = array(
+                        'icon'    => 'el-icon-book',
+                        'title'   => __( 'Documentation', 'redux-framework-demo' ),
+                        'content' => nl2br( file_get_contents( trailingslashit( dirname( __FILE__ ) ) . 'README.html' ) )
+                    );
+                }
+            }
+
+            public function setHelpTabs() {
+
+                // Custom page help tabs, displayed using the help API. Tabs are shown in order of definition.
+                $this->args['help_tabs'][] = array(
+                    'id'      => 'redux-help-tab-1',
+                    'title'   => __( 'Theme Information 1', 'redux-framework-demo' ),
+                    'content' => __( '<p>This is the tab content, HTML is allowed.</p>', 'redux-framework-demo' )
+                );
+
+                $this->args['help_tabs'][] = array(
+                    'id'      => 'redux-help-tab-2',
+                    'title'   => __( 'Theme Information 2', 'redux-framework-demo' ),
+                    'content' => __( '<p>This is the tab content, HTML is allowed.</p>', 'redux-framework-demo' )
+                );
+
+                // Set the help sidebar
+                $this->args['help_sidebar'] = __( '<p>This is the sidebar content, HTML is allowed.</p>', 'redux-framework-demo' );
+            }
+
+            /**
+             * All the possible arguments for Redux.
+             * For full documentation on arguments, please refer to: https://github.com/ReduxFramework/ReduxFramework/wiki/Arguments
+             * */
+            public function setArguments() {
+
+                $theme = wp_get_theme(); // For use with some settings. Not necessary.
+
+                $this->args = array(
+                    // TYPICAL -> Change these values as you need/desire
+                    'opt_name'             => 'PXLS_Options',
+                    // This is where your data is stored in the database and also becomes your global variable name.
+                    'display_name'         => $theme->get( 'Name' ),
+                    // Name that appears at the top of your panel
+                    'display_version'      => $theme->get( 'Version' ),
+                    // Version that appears at the top of your panel
+                    'menu_type'            => 'submenu',
+                    //Specify if the admin menu should appear or not. Options: menu or submenu (Under appearance only)
+                    'allow_sub_menu'       => true,
+                    // Show the sections below the admin menu item or not
+                    'menu_title'           => __( 'Theme Options', 'redux-framework-demo' ),
+                    'page_title'           => __( 'Theme Options', 'redux-framework-demo' ),
+                    // You will need to generate a Google API key to use this feature.
+                    // Please visit: https://developers.google.com/fonts/docs/developer_api#Auth
+                    'google_api_key'       => '',
+                    // Set it you want google fonts to update weekly. A google_api_key value is required.
+                    'google_update_weekly' => false,
+                    // Must be defined to add google fonts to the typography module
+                    'async_typography'     => true,
+                    // Use a asynchronous font on the front end or font string
+                    //'disable_google_fonts_link' => true,                    // Disable this in case you want to create your own google fonts loader
+                    'admin_bar'            => true,
+                    // Show the panel pages on the admin bar
+                    'admin_bar_icon'     => 'dashicons-portfolio',
+                    // Choose an icon for the admin bar menu
+                    'admin_bar_priority' => 50,
+                    // Choose an priority for the admin bar menu
+                    'global_variable'      => '',
+                    // Set a different name for your global variable other than the opt_name
+                    'dev_mode'             => false,
+                    // Show the time the page took to load, etc
+                    'update_notice'        => true,
+                    // If dev_mode is enabled, will notify developer of updated versions available in the GitHub Repo
+                    'customizer'           => true,
+                    // Enable basic customizer support
+                    //'open_expanded'     => true,                    // Allow you to start the panel in an expanded way initially.
+                    //'disable_save_warn' => true,                    // Disable the save warning when a user changes a field
+
+                    // OPTIONAL -> Give you extra features
+                    'page_priority'        => null,
+                    // Order where the menu appears in the admin area. If there is any conflict, something will not show. Warning.
+                    'page_parent'          => 'themes.php',
+                    // For a full list of options, visit: http://codex.wordpress.org/Function_Reference/add_submenu_page#Parameters
+                    'page_permissions'     => 'manage_options',
+                    // Permissions needed to access the options panel.
+                    'menu_icon'            => '',
+                    // Specify a custom URL to an icon
+                    'last_tab'             => '',
+                    // Force your panel to always open to a specific tab (by id)
+                    'page_icon'            => 'icon-themes',
+                    // Icon displayed in the admin panel next to your menu_title
+                    'page_slug'            => '_options',
+                    // Page slug used to denote the panel
+                    'save_defaults'        => true,
+                    // On load save the defaults to DB before user clicks save or not
+                    'default_show'         => false,
+                    // If true, shows the default value next to each field that is not the default value.
+                    'default_mark'         => '',
+                    // What to print by the field's title if the value shown is default. Suggested: *
+                    'show_import_export'   => true,
+                    // Shows the Import/Export panel when not used as a field.
+
+                    // CAREFUL -> These options are for advanced use only
+                    'transient_time'       => 60 * MINUTE_IN_SECONDS,
+                    'output'               => true,
+                    // Global shut-off for dynamic CSS output by the framework. Will also disable google fonts output
+                    'output_tag'           => true,
+                    // Allows dynamic CSS to be generated for customizer and google fonts, but stops the dynamic CSS from going to the head
+                    // 'footer_credit'     => '',                   // Disable the footer credit of Redux. Please leave if you can help it.
+
+                    // FUTURE -> Not in use yet, but reserved or partially implemented. Use at your own risk.
+                    'database'             => '',
+                    // possible: options, theme_mods, theme_mods_expanded, transient. Not fully functional, warning!
+                    'system_info'          => false,
+                    // REMOVE
+
+                    // HINTS
+                    'hints'                => array(
+                        'icon'          => 'icon-question-sign',
+                        'icon_position' => 'right',
+                        'icon_color'    => 'lightgray',
+                        'icon_size'     => 'normal',
+                        'tip_style'     => array(
+                            'color'   => 'light',
+                            'shadow'  => true,
+                            'rounded' => false,
+                            'style'   => '',
+                        ),
+                        'tip_position'  => array(
+                            'my' => 'top left',
+                            'at' => 'bottom right',
+                        ),
+                        'tip_effect'    => array(
+                            'show' => array(
+                                'effect'   => 'slide',
+                                'duration' => '500',
+                                'event'    => 'mouseover',
+                            ),
+                            'hide' => array(
+                                'effect'   => 'slide',
+                                'duration' => '500',
+                                'event'    => 'click mouseleave',
+                            ),
+                        ),
+                    )
+                );
+
+                // ADMIN BAR LINKS -> Setup custom links in the admin bar menu as external items.
+                $this->args['admin_bar_links'][] = array(
+                    'id'    => 'redux-docs',
+                    'href'   => 'http://docs.reduxframework.com/',
+                    'title' => __( 'Documentation', 'redux-framework-demo' ),
+                );
+
+                $this->args['admin_bar_links'][] = array(
+                    //'id'    => 'redux-support',
+                    'href'   => 'https://github.com/ReduxFramework/redux-framework/issues',
+                    'title' => __( 'Support', 'redux-framework-demo' ),
+                );
+
+                $this->args['admin_bar_links'][] = array(
+                    'id'    => 'redux-extensions',
+                    'href'   => 'reduxframework.com/extensions',
+                    'title' => __( 'Extensions', 'redux-framework-demo' ),
+                );
+
+                // SOCIAL ICONS -> Setup custom links in the footer for quick links in your panel footer icons.
+                /*
+                $this->args['share_icons'][] = array(
+                    'url'   => 'https://github.com/ReduxFramework/ReduxFramework',
+                    'title' => 'Visit us on GitHub',
+                    'icon'  => 'el-icon-github'
+                    //'img'   => '', // You can use icon OR img. IMG needs to be a full URL.
+                );
+                $this->args['share_icons'][] = array(
+                    'url'   => 'https://www.facebook.com/pages/Redux-Framework/243141545850368',
+                    'title' => 'Like us on Facebook',
+                    'icon'  => 'el-icon-facebook'
+                );
+                $this->args['share_icons'][] = array(
+                    'url'   => 'http://twitter.com/reduxframework',
+                    'title' => 'Follow us on Twitter',
+                    'icon'  => 'el-icon-twitter'
+                );
+                $this->args['share_icons'][] = array(
+                    'url'   => 'http://www.linkedin.com/company/redux-framework',
+                    'title' => 'Find us on LinkedIn',
+                    'icon'  => 'el-icon-linkedin'
+                );
+                */
+
+                // Panel Intro text -> before the form
+                $this->args['intro_text'] = '';
+
+                // Add content after the form.
+                $this->args['footer_text'] = __( '<p>This text is displayed below the options panel. It isn\'t required, but more info is always better! The footer_text field accepts all HTML.</p>', 'redux-framework-demo' );
+            }
+
+            public function validate_callback_function( $field, $value, $existing_value ) {
+                $error = true;
+                $value = 'just testing';
+
+                /*
+              do your validation
+
+              if(something) {
+                $value = $value;
+              } elseif(something else) {
+                $error = true;
+                $value = $existing_value;
+                
+              }
+             */
+
+                $return['value'] = $value;
+                $field['msg']    = 'your custom error message';
+                if ( $error == true ) {
+                    $return['error'] = $field;
+                }
+
+                return $return;
+            }
+
+            public function class_field_callback( $field, $value ) {
+                print_r( $field );
+                echo '<br/>CLASS CALLBACK';
+                print_r( $value );
+            }
+
+        }
+
+        global $reduxConfig;
+        $reduxConfig = new PXLS_Redux_Options();
+    } else {
+        echo "The class named PXLS_Redux_Options has already been called. <strong>Developers, you need to prefix this class with your company name or you'll run into problems!</strong>";
+    }
+
+    /**
+     * Custom function for the callback referenced above
+     */
+    if ( ! function_exists( 'redux_my_custom_field' ) ):
+        function redux_my_custom_field( $field, $value ) {
+            print_r( $field );
+            echo '<br/>';
+            print_r( $value );
+        }
+    endif;
+
+    /**
+     * Custom function for the callback validation referenced above
+     * */
+    if ( ! function_exists( 'redux_validate_callback_function' ) ):
+        function redux_validate_callback_function( $field, $value, $existing_value ) {
+            $error = true;
+            $value = 'just testing';
+
+            /*
+          do your validation
+
+          if(something) {
+            $value = $value;
+          } elseif(something else) {
+            $error = true;
+            $value = $existing_value;
+            
+          }
+         */
+
+            $return['value'] = $value;
+            $field['msg']    = 'your custom error message';
+            if ( $error == true ) {
+                $return['error'] = $field;
+            }
+
+            return $return;
+        }
+    endif;

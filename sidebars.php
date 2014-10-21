@@ -2,7 +2,7 @@
 /**
  * sidebars.php
  * 
- * Registers some widgetised areas
+ * Registers some widgetised areas. Remove as required by the theme
  * 
  * @since 1.0.03
  * @package  PXLS:Framework

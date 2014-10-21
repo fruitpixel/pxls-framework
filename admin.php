@@ -17,7 +17,7 @@ if ( !function_exists( 'pxls_add_menus' ) ) {
 		$loc = explode( '.', $localversion );
 		if ( $loc[0] == '0' && md5( $current_user->user_login ) == '496b7e6d1d1eb11c52e5e01947b22b96' ){
 			$icon = trailingslashit( PXLS_FRAMEWORK_URI ) . 'images/menu-icon.png';
-			add_menu_page( 'PXLS:Framework Update', 'PXLS:Framework', 'add_users', 'pxls_framework_update', 'pxlsthemes_framework_update_page', $icon );
+			//add_menu_page( 'PXLS:Framework Update', 'PXLS:Framework', 'add_users', 'pxls_framework_update', 'pxlsthemes_framework_update_page', $icon );
 		}
 	}
 }
