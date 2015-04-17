@@ -275,9 +275,12 @@ function pxls_text_trim( $text, $words = 50 ) {
  */
 function pxls_get_company_name() {
 	global $PXLS_Options;
-	$companyname = $PXLS_Options['pxls_company_name'];
-	if ( '' == $companyname ) {
-		$companyname = get_bloginfo( 'name' );
+	$companyname = '';
+	if ( isset( $PXLS_Options['pxls_company_name'] ) ) {
+		$companyname = $PXLS_Options['pxls_company_name'];
+		if ( '' == $companyname ) {
+			$companyname = get_bloginfo( 'name' );
+		}
 	}
 	return $companyname;
 }
@@ -314,7 +317,10 @@ function pxls_ga_code() {
  */
 function pxls_get_company_logo() {
 	global $PXLS_Options;
-	$companylogo = $PXLS_Options['pxls_company_logo']['url'];
+	$companylogo = '';
+	if ( isset( $PXLS_Options['pxls_company_logo'] ) ) {
+		$companylogo = $PXLS_Options['pxls_company_logo']['url'];
+	}
     return $companylogo;
 }
 
@@ -333,7 +339,7 @@ function pxls_login_style() {
 		echo '</style>';
 	}
 }
-add_action( 'login_head', 'pxls_login_style' );
+//add_action( 'login_head', 'pxls_login_style' );
 
 
 
@@ -351,7 +357,7 @@ function pxls_url_login(){
 		return home_url( '/' );
 	}
 }
-add_filter( 'login_headerurl', 'pxls_url_login' );
+//add_filter( 'login_headerurl', 'pxls_url_login' );
 
 
 
